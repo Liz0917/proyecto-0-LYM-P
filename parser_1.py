@@ -171,7 +171,7 @@ def verificarCiclo(Procesamiento):
     if Programa[pos] == "while:":
         pos += 1
         Procesamiento["i"] = pos
-        Procesamiento = verificar_condicion(Procesamiento)
+        Procesamiento = verificarCondicion(Procesamiento)
         Programa = Procesamiento["PROG"]
         pos = Procesamiento["i"]
         
@@ -180,7 +180,7 @@ def verificarCiclo(Procesamiento):
                 pos += 1
                 Procesamiento["i"] = pos
 
-                Procesamiento = verificar_bloque(Procesamiento)
+                Procesamiento = verificarBloque(Procesamiento)
                 pos = Procesamiento["i"]
                 Programa = Procesamiento["PROG"]
                 
