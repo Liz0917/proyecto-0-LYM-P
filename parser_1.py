@@ -5,7 +5,7 @@ Command= ["=","GOTO","MOVE","TURN","FACE","PUT","TOTHE","INDIR","OFTYPE","NOP", 
 Condition = ["FACING", "CAN", "NOT"]
 Cycle=["WHILE", "REPEAT" , "FOR"]
 RES =["=", "GOTO","MOVE","TURN","FACE","PUT","TOTHE","INDIR","OFTYPE","NOP", "JUMP","PICK","WHILE", "REPEAT",
-      "FOR", "FACING", "CAN", "NOT","PROC","IF" , "THEN", "ELSE", "DO"]
+      "FOR", "FACING", "CAN", "NOT","PROC","IF" , "THEN", "ELSE", "DO", "baloons", "chips"]
 Procesamiento = {"PROG": ReadFile, "i":0, "Funciona":True, "Command":Command, "Condition":Condition, "Cycle": Cycle,
                  "FD":["LEFT", "RIGHT", "AROUND"], "SD":["NORTH", "SOUTH", "EAST", "WEST"], "VAR":{},
                  "RES":RES,"PROC":{}}
@@ -45,7 +45,7 @@ def Adapt_Programa(Procesamiento):
     return Procesamiento
 
 # Verifica que las variables se definan correctamente
-def Verificar_VAR(Procesamiento):
+def VerificarVAR(Procesamiento):
     Programa = Procesamiento["PROG"]
     pos = Procesamiento["i"]
 
@@ -75,7 +75,7 @@ def Verificar_VAR(Procesamiento):
 
 
 # Función para verificar que cada  proceso esté definido correctamente
-def Verificar_Proceso(Procesamiento):
+def VerificarProceso(Procesamiento):
     Programa = Procesamiento["PROG"]
     pos = Procesamiento["i"]  
     contador = 0  
@@ -122,7 +122,7 @@ def Verificar_Proceso(Procesamiento):
     return Procesamiento
 
 # Función para verificar llamada a procedimiento
-def Verificar_Llamada_Proceso(Procesamiento):
+def VerificarLlamadaProceso(Procesamiento):
     Programa = Procesamiento["PROG"]
     pos = Procesamiento["i"] 
     contador = 0  
@@ -162,3 +162,55 @@ def Verificar_Llamada_Proceso(Procesamiento):
     return Procesamiento
 
 
+def verificarCiclo(Procesamiento):
+    Programa = Procesamiento["PROG"]
+    pos = Procesamiento["i"]
+    Reservadas = Procesamiento["RES"]
+    
+    # Verificar ciclo WHILE
+    if Programa[pos] == "while:":
+        pos += 1
+        Procesamiento["i"] = pos
+        Procesamiento = verificar_condicion(Procesamiento)
+        Programa = Procesamiento["PROG"]
+        pos = Procesamiento["i"]
+        
+        if Procesamiento["Funciona"]:  
+            if Programa[pos] == "do:":
+                pos += 1
+                Procesamiento["i"] = pos
+
+                Procesamiento = verificar_bloque(Procesamiento)
+                pos = Procesamiento["i"]
+                Programa = Procesamiento["PROG"]
+                
+            else:
+                Procesamiento["Funciona"] = False  
+        else:
+            Procesamiento["Funciona"] = False 
+
+   # Verificar ciclo REPEAT
+    elif Programa[pos] == "for:":
+        pos += 1
+        
+        if Programa[pos].isdigit():  
+            
+            pos += 1
+            if Programa[pos] == "repeat:":
+                pos += 1
+                if Programa[pos] == "[":  
+                    Procesamiento["i"] = pos
+                    
+                    Procesamiento = verificar_bloque(Procesamiento)
+                    
+                    pos = Procesamiento["i"]
+                    
+                else:
+                    Procesamiento["Funciona"] = False  
+            else:
+                Procesamiento["Funciona"] = False  
+        else:
+            Procesamiento["Funciona"] = False  
+    
+    return Procesamiento 
+    
