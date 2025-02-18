@@ -201,7 +201,7 @@ def verificarCiclo(Procesamiento):
                 if Programa[pos] == "[":  
                     Procesamiento["i"] = pos
                     
-                    Procesamiento = verificar_bloque(Procesamiento)
+                    Procesamiento = verificarBloque(Procesamiento)
                     
                     pos = Procesamiento["i"]
                     
@@ -213,4 +213,198 @@ def verificarCiclo(Procesamiento):
             Procesamiento["Funciona"] = False  
     
     return Procesamiento 
+
+
+def verificarComando(Procesamiento):
+    Programa = Procesamiento["PROG"]
+    Reservadas = Procesamiento["RES"]
+    FD = Procesamiento["FD"]
+    SD = Procesamiento["SD"]
+    OC = ["DROP", "GET", "GRAB", "LETGO"]
+    pos = Procesamiento["i"]
     
+    def matchea(expected, pos):
+        if Programa[pos] == expected:
+            return True, pos + 1
+        Procesamiento["Funciona"] = False
+        return False, pos
+    
+    def identificadorValido(pos):
+        return Programa[pos].isalnum() and Programa[pos] not in Reservadas
+    
+    if Programa[pos] in ["WALK", "LEAP"]:
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success and identificadorValido(pos):
+            pos += 1
+            if Programa[pos] == ")":
+                pos += 1
+            else:
+                success, pos = matchea(",", pos)
+                if success and (Programa[pos] in FD or Programa[pos] in SD):
+                    pos += 1
+                    matchea(")", pos)
+        Procesamiento["i"] = pos
+    
+    elif Programa[pos] in OC:
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success and identificadorValido(pos):
+            pos += 1
+            matchea(")", pos)
+        Procesamiento["i"] = pos
+    
+    elif Programa[pos] == "TURN":
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success and Programa[pos] in FD:
+            pos += 1
+            matchea(")", pos)
+        Procesamiento["i"] = pos
+    
+    elif Programa[pos] == "TURNTO":
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success and Programa[pos] in SD:
+            pos += 1
+            matchea(")", pos)
+        Procesamiento["i"] = pos
+    
+    elif Programa[pos] == "NOP":
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success:
+            matchea(")", pos)
+        Procesamiento["i"] = pos
+    
+    elif Programa[pos] == "JUMP":
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success and identificadorValido(pos):
+            pos += 1
+            success, pos = matchea(",", pos)
+            if success and identificadorValido(pos):
+                pos += 1
+                matchea(")", pos)
+        Procesamiento["i"] = pos
+    
+    elif Programa[pos] in Procesamiento["PROC"].keys():
+        Parametros = Procesamiento["PROC"][Programa[pos]]
+        pos += 1
+        success, pos = matchea("(", pos)
+        if success:
+            conteo, coma = 0, False
+            while Programa[pos] != ")":
+                if identificadorValido(pos):
+                    conteo += 1
+                    coma = False
+                elif Programa[pos] == "," and not coma:
+                    coma = True
+                else:
+                    Procesamiento["Funciona"] = False
+                    break
+                pos += 1
+            pos += 1  
+            if Parametros != conteo:
+                Procesamiento["Funciona"] = False
+        Procesamiento["i"] = pos
+    
+    return Procesamiento
+    
+   
+def verificarBloque(Procesamiento):
+    Programa = Procesamiento["PROG"]
+    pos = Procesamiento["i"]
+    ejecuta = True
+    coma = False
+    
+    while ejecuta:
+        if Programa[pos] in Procesamiento["Command"] or Programa[pos] in Procesamiento["PROC"]:
+            Procesamiento["i"] = pos
+            Procesamiento = verificarComando(Procesamiento)
+            pos = Procesamiento["i"]
+            coma = False      
+        elif Programa[pos] == ";":
+            pos += 1
+            coma = True
+            if Programa[pos] == "{":
+                pos += 1
+                Procesamiento["i"] = pos
+                Procesamiento = verificarBloque(Procesamiento)
+                pos = Procesamiento["i"]
+                coma = False
+            if Programa[pos] in Procesamiento["Command"] or Programa[pos] in Procesamiento["PROC"]:
+                Procesamiento["i"] = pos
+                Procesamiento = verificarComando(Procesamiento)
+                pos = Procesamiento["i"]  
+            if Programa[pos - 1] == ";" and Programa[pos] == "}":
+                Procesamiento["Funciona"] = False
+                Procesamiento["i"] = pos
+                ejecuta = False     
+        elif Programa[pos] == "}":
+            ejecuta = False
+            pos += 1
+            Procesamiento["i"] = pos
+        elif Programa[pos] == "{":
+            pos += 1
+            Procesamiento["i"] = pos
+            Procesamiento = verificarBloque(Procesamiento)
+            pos = Procesamiento["i"]
+            coma = False
+        elif Programa[pos] == "WHILE" or Programa[pos] == "REPEAT":
+            Procesamiento["i"] = pos
+            Procesamiento = verificarCiclo(Procesamiento)
+            pos = Procesamiento["i"]
+            coma = False
+        elif Programa[pos] == "IF":
+            pos += 1
+            Procesamiento["i"] = pos
+            Procesamiento = verificarCondicion(Procesamiento)
+            pos = Procesamiento["i"]
+            coma = False
+        else:
+            Procesamiento["Funciona"] = False
+            Procesamiento["i"] = pos
+            ejecuta = False 
+    
+    return Procesamiento
+
+
+
+def verificarCondicion(Procesamiento): 
+    Programa = Procesamiento["PROG"]
+    pos = Procesamiento["i"]
+    
+    if Programa[pos] in Procesamiento["Condition"]:
+        pos += 1
+        if Programa[pos] == "(":
+            pos += 1
+            Procesamiento["i"] = pos
+            Procesamiento = verificarComando(Procesamiento)
+            pos = Procesamiento["i"]  
+            if Programa[pos] == ")":
+                pos += 1
+                if Programa[pos] == "{":
+                    pos += 1
+                    Procesamiento["i"] = pos
+                    Procesamiento = verificarBloque(Procesamiento)
+                    pos = Procesamiento["i"] 
+                    if Programa[pos] == "ELSE":
+                        pos += 1
+                        if Programa[pos] == "{":
+                            pos += 1
+                            Procesamiento["i"] = pos
+                            Procesamiento = verificarBloque(Procesamiento)
+                            pos = Procesamiento["i"] 
+                        else:
+                            Procesamiento["Funciona"] = False
+                    else:
+                        Procesamiento["Funciona"] = False
+                else:
+                    Procesamiento["Funciona"] = False
+            else:
+                Procesamiento["Funciona"] = False 
+        else:
+            Procesamiento["Funciona"] = False
+    
+    return Procesamiento 
