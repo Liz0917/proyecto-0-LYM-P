@@ -408,3 +408,25 @@ def verificarCondicion(Procesamiento):
             Procesamiento["Funciona"] = False
     
     return Procesamiento 
+
+
+def Inicio(Procesamiento):
+    Procesamiento = Adapt_Programa(Procesamiento)
+    Programa = Procesamiento["PROG"]
+    while Procesamiento["Funciona"] and Procesamiento["i"]<len(Programa):
+        pos=Procesamiento["i"]
+        if Programa[pos] =="DEFPROC":
+            Procesamiento = VerificarProceso(Procesamiento)
+        elif Programa[pos] =="DEFVAR":
+            Procesamiento["i"] +=1
+            Procesamiento = VerificarVAR(Procesamiento)
+        elif Programa[pos] =="{":
+            Procesamiento["i"] +=1
+            Procesamiento = verificarBloque(Procesamiento)
+        else: 
+            Procesamiento["Funciona"]=False
+    if Procesamiento["Funciona"]:
+        print("El programa es CORRECTO")
+    else:
+        print("El programa es ERRONEO")      
+Inicio(Procesamiento)
